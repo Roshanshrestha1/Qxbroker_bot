@@ -1,12 +1,14 @@
 """
 QX Broker Client - Primary Data Source
-Handles connection to QX Broker unofficial API with error handling and reconnection logic.
+Handles connection to QX Broker using API-Quotex library with error handling and reconnection logic.
+Based on: https://github.com/A11ksa/API-Quotex
 """
+import asyncio
 import time
-import requests
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 import pandas as pd
+import threading
 
 from utils.logger import logger
 from config import QX_EMAIL, QX_PASSWORD, QX_TIMEOUT, SIMULATE_QX_FAILURE
@@ -20,24 +22,38 @@ class PrimarySourceError(Exception):
 class QXBrokerClient:
     """
     QX Broker client for fetching market data.
-    Uses unofficial API with automatic reconnection on failure.
+    Uses the official API-Quotex library with Playwright login.
     
-    Note: Since there's no official quotexapi library that is stable,
-    this implementation uses a mock/simulation approach for demonstration.
-    In production, you would replace the _connect() and data fetching methods
-    with actual QX Broker API calls using a library like quotexapi or api-quotex.
+    Features:
+    - Async WebSocket connection for real-time data
+    - Playwright-based authentication (SSID extraction)
+    - Automatic reconnection on failure
+    - Support for both demo and live accounts
     """
     
     def __init__(self):
-        self.session = requests.Session()
+        self.client = None
         self.connected = False
         self.last_connect_time: Optional[datetime] = None
         self.balance: Optional[float] = None
         self._session_id: Optional[str] = None
+        self._ssid: Optional[str] = None
+        self._is_demo = True  # Use demo account by default
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._lock = threading.Lock()
         
+    def _get_event_loop(self) -> asyncio.AbstractEventLoop:
+        """Get or create event loop for async operations."""
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        return loop
+    
     def _connect(self) -> bool:
         """
-        Establish connection to QX Broker.
+        Establish connection to QX Broker using API-Quotex.
         Returns True if successful, False otherwise.
         """
         try:
@@ -51,14 +67,50 @@ class QXBrokerClient:
                 logger.warning("QX Broker credentials not configured")
                 raise PrimarySourceError("QX Broker credentials not configured")
             
-            # TODO: Replace with actual QX Broker API connection
-            # Example using hypothetical quotexapi:
-            # from quotexapi.stable_api import Quotex
-            # self.client = Quotex(email=QX_EMAIL, password=QX_PASSWORD)
-            # self.client.connect()
+            logger.info("Attempting to connect to QX Broker...")
+            logger.info(f"Email: {QX_EMAIL[:3]}***@{QX_EMAIL.split('@')[1]}")
             
-            # For now, simulate connection success
-            logger.info("QX Broker connection established (simulated)")
+            # Import api_quotex dynamically
+            try:
+                from api_quotex import AsyncQuotexClient, get_ssid
+            except ImportError:
+                logger.error("api_quotex library not installed. Run: pip install api_quotex")
+                raise PrimarySourceError("api_quotex library not installed")
+            
+            # Get SSID using Playwright (this will open a browser on first run)
+            logger.info("Extracting SSID via Playwright (browser may open)...")
+            try:
+                ssid_info = get_ssid(email=QX_EMAIL, password=QX_PASSWORD)
+                self._ssid = ssid_info.get("demo") if self._is_demo else ssid_info.get("live")
+                
+                if not self._ssid:
+                    raise PrimarySourceError("Failed to extract SSID from QX Broker")
+                
+                logger.info("SSID extracted successfully")
+            except Exception as e:
+                logger.error(f"Playwright login failed: {e}")
+                logger.info("Make sure you have completed the browser authentication")
+                raise PrimarySourceError(f"Authentication failed: {e}")
+            
+            # Create async client
+            self.client = AsyncQuotexClient(ssid=self._ssid, is_demo=self._is_demo)
+            
+            # Run async connect in a new thread
+            def run_connect():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(self.client.connect())
+                finally:
+                    loop.close()
+            
+            with self._lock:
+                success = run_connect()
+            
+            if not success:
+                raise PrimarySourceError("Failed to establish WebSocket connection")
+            
+            logger.info("✅ QX Broker connection established successfully")
             self.connected = True
             self.last_connect_time = datetime.now()
             self._session_id = f"session_{int(time.time())}"
@@ -67,15 +119,9 @@ class QXBrokerClient:
             
         except PrimarySourceError:
             raise
-        except requests.exceptions.Timeout:
-            logger.error("QX Broker connection timeout")
-            raise PrimarySourceError("Connection timeout")
-        except requests.exceptions.ConnectionError as e:
+        except Exception as e:
             logger.error(f"QX Broker connection error: {e}")
             raise PrimarySourceError(f"Connection error: {e}")
-        except Exception as e:
-            logger.error(f"QX Broker authentication failed: {e}")
-            raise PrimarySourceError(f"Authentication failed: {e}")
     
     def _ensure_connected(self) -> None:
         """Ensure connection is active, reconnect if needed."""
@@ -91,6 +137,21 @@ class QXBrokerClient:
     
     def disconnect(self) -> None:
         """Disconnect from QX Broker."""
+        if self.client:
+            try:
+                def run_disconnect():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        return loop.run_until_complete(self.client.disconnect())
+                    finally:
+                        loop.close()
+                
+                with self._lock:
+                    run_disconnect()
+            except Exception as e:
+                logger.debug(f"Disconnect error (ignored): {e}")
+        
         self.connected = False
         self._session_id = None
         self.last_connect_time = None
@@ -101,7 +162,7 @@ class QXBrokerClient:
         Get current price for an asset.
         
         Args:
-            asset: Asset name (e.g., "EUR/USD", "Bitcoin (OTC)")
+            asset: Asset name in QX Broker format (e.g., "EURUSD_otc", "AUDCAD_otc")
             
         Returns:
             Current price as float
@@ -112,32 +173,28 @@ class QXBrokerClient:
         try:
             self._ensure_connected()
             
-            # TODO: Replace with actual QX Broker API call
-            # Example:
-            # price_data = self.client.get_asset_quote(asset)
-            # return float(price_data['price'])
+            # Convert asset name to QX format if needed
+            qx_asset = self._convert_to_qx_format(asset)
             
-            # For demonstration, simulate price fetch
-            # In real implementation, this would call QX API
-            logger.debug(f"Fetching price for {asset} from QX Broker")
+            logger.debug(f"Fetching price for {qx_asset} from QX Broker")
             
-            # Simulate network delay
-            time.sleep(0.1)
+            # Run async get_quote in a new thread
+            def run_get_quote():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(self.client.get_quote(qx_asset))
+                finally:
+                    loop.close()
             
-            # Return simulated price (will be overridden by fallback in DataManager)
-            # This is just for testing the QX client directly
-            import random
-            base_prices = {
-                "EUR/USD": 1.0850,
-                "GBP/USD": 1.2650,
-                "USD/JPY": 149.50,
-                "Bitcoin (OTC)": 43500.00,
-                "Ethereum (OTC)": 2280.00,
-                "Gold": 2035.50,
-                "USCrude (OTC)": 73.25,
-            }
+            with self._lock:
+                quote_data = run_get_quote()
             
-            price = base_prices.get(asset, 1.0 + random.random())
+            if not quote_data or 'value' not in quote_data:
+                raise PrimarySourceError(f"No price data for {qx_asset}")
+            
+            price = float(quote_data['value'])
+            logger.debug(f"Price for {asset}: {price}")
             return price
             
         except PrimarySourceError:
@@ -164,18 +221,40 @@ class QXBrokerClient:
         try:
             self._ensure_connected()
             
-            # TODO: Replace with actual QX Broker API call
-            # Example:
-            # candles = self.client.get_candles(asset, period, count)
-            # return pd.DataFrame(candles)
+            # Convert asset name to QX format
+            qx_asset = self._convert_to_qx_format(asset)
             
-            # For demonstration, return empty DataFrame
-            # The DataManager will fall back to yfinance/Binance
-            logger.debug(f"Fetching {count} candles for {asset} ({period}) from QX Broker")
+            # Convert period to seconds
+            timeframe_seconds = self._period_to_seconds(period)
             
-            # Simulate that QX doesn't provide historical candles
-            # This forces fallback to secondary source which is realistic
-            raise PrimarySourceError("Historical candles not available via QX API")
+            logger.debug(f"Fetching {count} candles for {qx_asset} ({period})")
+            
+            # Run async get_candles in a new thread
+            def run_get_candles():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(
+                        self.client.get_candles(qx_asset, timeframe_seconds, count)
+                    )
+                finally:
+                    loop.close()
+            
+            with self._lock:
+                candles_data = run_get_candles()
+            
+            if not candles_data:
+                raise PrimarySourceError(f"No candle data for {asset}")
+            
+            # Convert to DataFrame
+            df = pd.DataFrame(candles_data)
+            df['time'] = pd.to_datetime(df['time'], unit='s')
+            df.set_index('time', inplace=True)
+            df.rename(columns={'open': 'Open', 'high': 'High', 'low': 'Low', 
+                              'close': 'Close', 'volume': 'Volume'}, inplace=True)
+            
+            logger.debug(f"Fetched {len(df)} candles for {asset}")
+            return df
             
         except PrimarySourceError:
             raise
@@ -196,13 +275,22 @@ class QXBrokerClient:
         try:
             self._ensure_connected()
             
-            # TODO: Replace with actual QX Broker API call
-            # Example:
-            # balance_info = self.client.get_balance()
-            # return float(balance_info['balance'])
+            def run_get_balance():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(self.client.get_balance())
+                finally:
+                    loop.close()
             
-            # Simulated balance
-            self.balance = 10000.00
+            with self._lock:
+                balance_info = run_get_balance()
+            
+            if not balance_info:
+                raise PrimarySourceError("No balance data available")
+            
+            self.balance = float(balance_info.balance)
+            logger.info(f"Account balance: {self.balance} {balance_info.currency}")
             return self.balance
             
         except PrimarySourceError:
@@ -210,6 +298,81 @@ class QXBrokerClient:
         except Exception as e:
             logger.error(f"Error fetching balance: {e}")
             raise PrimarySourceError(f"Failed to fetch balance: {e}")
+    
+    def _convert_to_qx_format(self, asset: str) -> str:
+        """
+        Convert asset name to QX Broker format.
+        
+        Examples:
+            "EUR/USD" -> "EURUSD_otc"
+            "Bitcoin (OTC)" -> "BTCUSD_otc"
+            "Gold" -> "GOLD"
+        """
+        # Remove common suffixes and clean up
+        cleaned = asset.replace(" (OTC)", "").replace("(OTC)", "").strip()
+        cleaned = cleaned.replace("/", "").replace(" ", "")
+        
+        # Common mappings
+        mappings = {
+            "EURUSD": "EURUSD_otc",
+            "GBPUSD": "GBPUSD_otc",
+            "USDJPY": "USDJPY_otc",
+            "AUDUSD": "AUDUSD_otc",
+            "USDCAD": "USDCAD_otc",
+            "NZDUSD": "NZDUSD_otc",
+            "USDCHF": "USDCHF_otc",
+            "AUDCAD": "AUDCAD_otc",
+            "AUDNZD": "AUDNZD_otc",
+            "NZDCAD": "NZDCAD_otc",
+            "GBPAUD": "GBPAUD_otc",
+            "GBPCAD": "GBPCAD_otc",
+            "GBPJPY": "GBPJPY_otc",
+            "EURJPY": "EURJPY_otc",
+            "EURGBP": "EURGBP_otc",
+            "EURAUD": "EURAUD_otc",
+            "EURCAD": "EURCAD_otc",
+            "AUDJPY": "AUDJPY_otc",
+            "CADJPY": "CADJPY_otc",
+            "CHFJPY": "CHFJPY_otc",
+            "NZDJPY": "NZDJPY_otc",
+            "BTCUSD": "CRYPTOBTCUSD_otc",
+            "ETHUSD": "CRYPTOETHUSD_otc",
+            "XRPUSD": "CRYPTOXRPUSD_otc",
+            "LTCUSD": "CRYPTOLTCUSD_otc",
+            "BCHUSD": "CRYPTOBCHUSD_otc",
+            "BNBUSD": "CRYPTOBNBUSD_otc",
+            "ADAUSD": "CRYPTOADAUSD_otc",
+            "SOLUSD": "CRYPTOSOLUSD_otc",
+            "DOTUSD": "CRYPTODOTUSD_otc",
+            "DOGEUSD": "CRYPTODOGEUSD_otc",
+            "GOLD": "GOLD",
+            "SILVER": "SILVER",
+            "USCRUDE": "USCRUDE",
+            "UKBRENT": "UKBRENT",
+        }
+        
+        # Try direct mapping
+        if cleaned.upper() in mappings:
+            return mappings[cleaned.upper()]
+        
+        # Default: add _otc suffix if not already present
+        if not cleaned.endswith("_otc"):
+            return cleaned.upper() + "_otc"
+        
+        return cleaned.upper()
+    
+    def _period_to_seconds(self, period: str) -> int:
+        """Convert period string to seconds."""
+        mapping = {
+            "1m": 60,
+            "5m": 300,
+            "15m": 900,
+            "30m": 1800,
+            "1h": 3600,
+            "4h": 14400,
+            "1d": 86400,
+        }
+        return mapping.get(period.lower(), 60)
     
     def test_connection(self) -> bool:
         """
