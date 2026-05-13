@@ -37,6 +37,8 @@ from handlers.manual_analysis_handler import (
     manual_trade_time_callback,
     manual_back_assets_callback,
 )
+# Import analyze_asset callback handler
+from handlers.callback_handlers import analyze_asset_callback
 
 
 def create_application() -> Application:
@@ -78,6 +80,9 @@ def create_application() -> Application:
     
     # Asset selection
     application.add_handler(CallbackQueryHandler(asset_detail_callback, pattern="^asset_"))
+    
+    # NEW: Analyze specific asset from Top 10 list
+    application.add_handler(CallbackQueryHandler(analyze_asset_callback, pattern="^analyze_asset_"))
     
     # Navigation
     application.add_handler(CallbackQueryHandler(back_to_main_callback, pattern="^back_to_main$"))
