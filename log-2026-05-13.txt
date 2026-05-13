@@ -1,0 +1,6 @@
+2026-05-13 17:57:43.426 | WARNING  | api_quotex.config:_load_config:105 - config.json not found, using default configuration
+2026-05-13 17:57:43.426 | WARNING  | api_quotex.config:_load_session:141 - session.json not found, using default session data
+2026-05-13 17:57:43.426 | INFO     | api_quotex.config:__init__:78 - Config instance initialized successfully
+2026-05-13 17:57:59.653 | WARNING  | api_quotex.config:_load_config:105 - config.json not found, using default configuration
+2026-05-13 17:57:59.653 | WARNING  | api_quotex.config:_load_session:141 - session.json not found, using default session data
+2026-05-13 17:57:59.653 | INFO     | api_quotex.config:__init__:78 - Config instance initialized successfully

@@ -9,7 +9,10 @@ requests>=2.31.0
 # QX Broker API (Primary Data Source)
 # Uses official API-Quotex library with Playwright for authentication
 # GitHub: https://github.com/A11ksa/API-Quotex
-api_quotex>=2.0.0
+# Note: api_quotex is installed from git, not PyPI
+git+https://github.com/A11ksa/API-Quotex.git
+loguru>=0.7.0
+cloudscraper>=1.2.71
 playwright>=1.40.0
 websockets>=12.0
 pydantic>=2.0.0
