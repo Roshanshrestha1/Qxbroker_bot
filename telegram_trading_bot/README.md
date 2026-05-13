@@ -61,27 +61,43 @@ telegram_trading_bot/
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Python 3.8 or higher
-- Telegram Bot Token (get from [@BotFather](https://t.me/BotFather))
+### Option 1: One-Command Setup (Recommended) ⭐
 
-### Step 1: Clone or Download
+The easiest way to set up and run the bot is using the provided `run.sh` script:
+
 ```bash
 cd telegram_trading_bot
+chmod +x run.sh
+./run.sh
 ```
 
-### Step 2: Create Virtual Environment (Recommended)
+This script will automatically:
+1. ✅ Check Python installation
+2. 📦 Create a virtual environment
+3. 📥 Install all dependencies
+4. 🔐 Ask you for your Bot Token interactively
+5. 🚀 Start the bot immediately
+
+**That's it!** Just paste your token when prompted, and the bot will start running.
+
+---
+
+### Option 2: Manual Setup
+
+If you prefer to set up manually:
+
+#### Step 1: Create Virtual Environment
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-### Step 3: Install Dependencies
+#### Step 2: Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### Step 4: Configure Environment
+#### Step 3: Configure Environment
 ```bash
 cp .env.example .env
 ```
@@ -92,7 +108,7 @@ BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
 LOG_LEVEL=INFO
 ```
 
-### Step 5: Run the Bot
+#### Step 4: Run the Bot
 ```bash
 python bot.py
 ```
