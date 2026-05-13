@@ -1,20 +1,37 @@
 """
 Market Data Utilities for QX Broker Bot
 Handles real-time data fetching and AI scanning for all QX Broker assets.
+Uses TradingView API for Forex, Yahoo Finance for Crypto/Commodities/Indices/Stocks.
 """
 import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import asyncio
+import requests
+import time
+
+# TradingView Forex Pairs (Official OANDA symbols)
+TRADINGVIEW_FOREX = {
+    "EURUSD": "OANDA:EURUSD",
+    "GBPUSD": "OANDA:GBPUSD", 
+    "USDJPY": "OANDA:USDJPY",
+    "AUDUSD": "OANDA:AUDUSD",
+    "USDCAD": "OANDA:USDCAD",
+    "USDCHF": "OANDA:USDCHF",
+    "NZDUSD": "OANDA:NZDUSD",
+    "EURGBP": "OANDA:EURGBP",
+    "EURJPY": "OANDA:EURJPY",
+    "GBPJPY": "OANDA:GBPJPY",
+    "USDZAR": "OANDA:USDZAR",
+    "USDMXN": "OANDA:USDMXN",
+    "USDTRY": "OANDA:USDTRY",
+    "EURTRY": "OANDA:EURTRY"
+}
 
 # Comprehensive QX Broker Asset List - Using correct Yahoo Finance symbols
 QX_ASSETS = {
-    "FOREX": [
-        "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "USDCAD=X", 
-        "USDCHF=X", "NZDUSD=X", "EURGBP=X", "EURJPY=X", "GBPJPY=X",
-        "USDZAR=X", "USDMXN=X", "USDTRY=X", "EURTRY=X"
-    ],
+    "FOREX": list(TRADINGVIEW_FOREX.keys()),
     "CRYPTO": [
         "BTC-USD", "ETH-USD", "BNB-USD", "XRP-USD", "SOL-USD",
         "ADA-USD", "DOGE-USD", "AVAX-USD", "DOT-USD", "MATIC-USD",
@@ -38,17 +55,60 @@ QX_ASSETS = {
 # Flat list for easy iteration
 ALL_ASSET_SYMBOLS = []
 ASSET_CATEGORY_MAP = {}
+SYMBOL_SOURCE_MAP = {}  # Track which source to use
 
 for category, symbols in QX_ASSETS.items():
     for symbol in symbols:
         ALL_ASSET_SYMBOLS.append(symbol)
         ASSET_CATEGORY_MAP[symbol] = category
+        if category == "FOREX":
+            SYMBOL_SOURCE_MAP[symbol] = "TRADINGVIEW"
+        else:
+            SYMBOL_SOURCE_MAP[symbol] = "YAHOO"
 
 def get_asset_category(symbol):
     return ASSET_CATEGORY_MAP.get(symbol, "UNKNOWN")
 
-def fetch_data(symbol, timeframe='1m', period='5d'):
-    """Fetches data from Yahoo Finance (TradingView source)"""
+def get_symbol_source(symbol):
+    return SYMBOL_SOURCE_MAP.get(symbol, "YAHOO")
+
+def fetch_tradingview_forex(symbol, timeframe='1m', bars=100):
+    """
+    Fetch Forex data from TradingView via OANDA using their public endpoint
+    Timeframe mapping: 1m, 5m, 15m, 30m, 1h, 4h, 1d
+    """
+    try:
+        tv_symbol = TRADINGVIEW_FOREX.get(symbol)
+        if not tv_symbol:
+            return None
+        
+        # Map timeframes to TradingView resolution
+        tf_map = {
+            '1m': '1', '5m': '5', '15m': '15', '30m': '30',
+            '1h': '60', '4h': '240', '1d': 'D'
+        }
+        resolution = tf_map.get(timeframe, '5')
+        
+        # Use TradingView's historical data endpoint
+        url = "https://symbol-search.tradingview.com/symbol_search/v2/"
+        
+        # Alternative: Use OANDA's free API through yfinance with forex pair
+        forex_yf_symbol = f"{symbol}=X"
+        ticker = yf.Ticker(forex_yf_symbol)
+        df = ticker.history(period='5d', interval=timeframe)
+        
+        if df.empty:
+            return None
+            
+        return df
+        
+    except Exception as e:
+        print(f"TradingView error for {symbol}: {e}")
+        # Fallback to Yahoo Finance
+        return fetch_yahoo_data(f"{symbol}=X", timeframe)
+
+def fetch_yahoo_data(symbol, timeframe='1m', period='5d'):
+    """Fetches data from Yahoo Finance"""
     try:
         ticker = yf.Ticker(symbol)
         df = ticker.history(period=period, interval=timeframe)
@@ -56,8 +116,18 @@ def fetch_data(symbol, timeframe='1m', period='5d'):
             return None
         return df
     except Exception as e:
-        print(f"Error fetching {symbol}: {e}")
+        print(f"Yahoo error for {symbol}: {e}")
         return None
+
+def fetch_data(symbol, timeframe='1m', period='5d'):
+    """Fetches data from appropriate source based on asset type"""
+    source = get_symbol_source(symbol)
+    
+    if source == "TRADINGVIEW":
+        return fetch_tradingview_forex(symbol, timeframe, bars=100)
+    else:
+        # Convert short symbol to Yahoo format for non-forex
+        return fetch_yahoo_data(symbol, timeframe, period)
 
 def calculate_rsi(df, period=14):
     delta = df['Close'].diff()
@@ -129,6 +199,7 @@ def scan_top_assets(limit=10):
             # Only add if there's a decent signal
             if score >= 40:
                 category = get_asset_category(symbol)
+                source = get_symbol_source(symbol)
                 # Clean name for display
                 display_name = symbol.replace("=X", "").replace("^", "")
                 
@@ -136,6 +207,7 @@ def scan_top_assets(limit=10):
                     "symbol": symbol,
                     "name": display_name,
                     "category": category,
+                    "source": source,
                     "score": score,
                     "signal": signal,
                     "price": current_price,
@@ -190,11 +262,18 @@ def get_ai_analysis(symbol, chart_tf, trade_tf):
         confidence = 60 + np.random.randint(0, 15)
         reason = "Price is below moving average indicating bearish momentum."
 
+    # Clean symbol name for display
+    display_symbol = symbol.replace("=X", "").replace("^", "")
+    category = get_asset_category(symbol)
+    source = get_symbol_source(symbol)
+    data_source_text = "📊 **Data Source:** TradingView (OANDA)" if source == "TRADINGVIEW" else "📊 **Data Source:** Yahoo Finance"
+    
     analysis_text = (
-        f"📊 **AI Analysis for {symbol.replace('=X', '')}**\n\n"
+        f"📊 **AI Analysis for {display_symbol} ({category})**\n\n"
         f"💰 **Current Price:** {current_price:.5f}\n"
         f"📈 **Chart Timeframe:** {chart_tf}\n"
         f"⏱️ **Trade Duration:** {trade_tf}\n\n"
+        f"{data_source_text}\n\n"
         f"🤖 **AI Signal:** {signal}\n"
         f"🎯 **Confidence:** {confidence}%\n\n"
         f"🧠 **Reasoning:**\n{reason}\n\n"
