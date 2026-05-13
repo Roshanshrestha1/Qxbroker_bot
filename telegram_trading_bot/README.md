@@ -1,268 +1,83 @@
-# 🤖 Telegram Trading Bot
+# Trading Bot with AI Analysis & Manual Analysis
 
-A production-ready Telegram bot for trading analysis with AI-powered trade suggestions and real-time market data.
+A Telegram trading bot that provides AI-powered trade analysis and manual asset analysis with customizable timeframes.
 
-## 📋 Features
+## Features
 
-### 1. **AI Best Trade Finder**
-- Scans top assets across Crypto, Forex, Indices, and Commodities
-- Uses RSI + SMA technical indicators
-- Returns the best BUY/SELL opportunity with confidence score
-- Shows detailed reasoning for each recommendation
+### 🔍 AI Best Trade Finder
+- Automatically scans multiple assets across crypto, forex, indices, and commodities
+- Uses technical indicators (RSI, SMA) to find the best trading opportunities
+- Provides exact chart timeframe and trade time based on your settings
+- Shows confidence level and reasoning for each signal
 
-### 2. **Trading Inside**
-- Browse assets by category:
-  - 🪙 **Crypto**: BTC, ETH, SOL, XRP, ADA, DOGE, etc.
-  - 💱 **Forex**: EUR/USD, GBP/USD, USD/JPY, etc.
-  - 📈 **Indices**: S&P 500, NASDAQ, Dow Jones, etc.
-  - 🏆 **Commodities**: Gold, Silver, Oil, Natural Gas, etc.
-- Real-time price data with 24h change
-- Technical analysis (RSI, SMA, Trend)
-- Buy/Sell/Hold recommendations
-- Refresh button to update data
+### 📊 Trading Inside
+- Browse assets by category (Crypto, Forex, Indices, Commodities)
+- View detailed analysis for each asset
+- Real-time price data from TradingView-compatible sources (Binance, Yahoo Finance)
 
-### 3. **Technical Indicators**
-- **RSI (Relative Strength Index)**: Identifies overbought (>70) and oversold (<30) conditions
-- **SMA (Simple Moving Average)**: 20-period trend indicator
-- **Trading Logic**:
-  - BUY: RSI < 30 AND Price > SMA
-  - SELL: RSI > 70 AND Price < SMA
+### 📝 Manual Analysis
+- Select any asset manually
+- Choose your preferred chart timeframe (1m, 5m, 15m, 30m, 1h, 4h, 1d)
+- Choose your trade expiration time (1m, 2m, 5m, 10m, 15m, 30m, 1h)
+- Get detailed technical analysis with recommendations
 
-## 📁 Project Structure
+### ⚙️ Settings
+- Set default chart timeframe for AI analysis
+- Set default trade time for all analyses
+- Reset to defaults anytime
+- Settings are saved per user
 
-```
-telegram_trading_bot/
-├── bot.py                  # Main application entry point
-├── config.py               # Configuration settings
-├── requirements.txt        # Python dependencies
-├── .env.example           # Environment variables template
-├── README.md              # This file
-├── handlers/
-│   ├── __init__.py
-│   ├── start_handler.py       # /start command handler
-│   ├── ai_trade_finder.py     # AI trade finder logic
-│   ├── trading_inside.py      # Category and asset list views
-│   └── callback_handlers.py   # Button click handlers
-├── utils/
-│   ├── __init__.py
-│   ├── market_data.py         # Data fetching (Binance, Yahoo Finance)
-│   ├── indicators.py          # Technical indicators (RSI, SMA)
-│   ├── telegram_helpers.py    # Keyboard builders, formatters
-│   └── logger.py              # Logging setup
-├── assets/
-│   ├── __init__.py
-│   └── asset_lists.py         # Asset symbols and names
-├── replies/
-│   ├── __init__.py
-│   └── messages.py            # All bot response texts
-└── data/
-    └── bot.log                # Log file (auto-created)
-```
+### 🏠 Navigation
+- All screens have "Back to Menu" button
+- Easy navigation between categories and assets
+- Return to home from anywhere
 
-## 🚀 Quick Start
+## Timeframes Available
 
-### Option 1: One-Command Setup (Recommended) ⭐
+### Chart Timeframes (TradingView compatible)
+- 1 Minute
+- 5 Minutes
+- 15 Minutes
+- 30 Minutes
+- 1 Hour
+- 4 Hours
+- 1 Day
 
-The easiest way to set up and run the bot is using the provided `run.sh` script:
+### Trade Times (Binary Options style)
+- 1 Minute
+- 2 Minutes
+- 5 Minutes
+- 10 Minutes
+- 15 Minutes
+- 30 Minutes
+- 1 Hour
 
-```bash
-cd telegram_trading_bot
-chmod +x run.sh
-./run.sh
-```
+## Installation
 
-This script will automatically:
-1. ✅ Check Python installation
-2. 📦 Create a virtual environment
-3. 📥 Install all dependencies
-4. 🔐 Ask you for your Bot Token interactively
-5. 🚀 Start the bot immediately
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Create `.env` file with your bot token:
+   ```
+   BOT_TOKEN=your_telegram_bot_token_here
+   ```
+4. Run the bot:
+   ```bash
+   python bot.py
+   ```
 
-**That's it!** Just paste your token when prompted, and the bot will start running.
+## Data Sources
+- **Crypto**: Binance (via ccxt)
+- **Forex/Indices/Commodities**: Yahoo Finance
 
----
+All data is fetched from reliable TradingView-compatible sources.
 
-### Option 2: Manual Setup
+## Technical Indicators
+- RSI (Relative Strength Index) - Period: 14
+- SMA (Simple Moving Average) - Period: 20
+- Trend detection based on price vs SMA
 
-If you prefer to set up manually:
-
-#### Step 1: Create Virtual Environment
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-#### Step 2: Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-#### Step 3: Configure Environment
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and add your bot token:
-```env
-BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
-LOG_LEVEL=INFO
-```
-
-#### Step 4: Run the Bot
-```bash
-python bot.py
-```
-
-You should see:
-```
-✅ Bot is running! Press Ctrl+C to stop.
-```
-
-## 🤖 Getting Your Bot Token
-
-1. Open Telegram and search for **@BotFather**
-2. Send `/newbot` command
-3. Follow the instructions:
-   - Choose a name for your bot (e.g., "My Trading Bot")
-   - Choose a username (must end in "bot", e.g., "my_trading_bot")
-4. BotFather will give you a token like: `1234567890:ABCdefGHIjklMNOpqrsTUVwxyz`
-5. Copy this token to your `.env` file
-
-## 📱 Using the Bot
-
-1. Open Telegram and find your bot
-2. Send `/start` command
-3. You'll see two buttons:
-   - **🔍 AI Best Trade Finder**: Get the best trading opportunity
-   - **📊 Trading Inside**: Browse assets by category
-
-### Navigation Flow:
-```
-/start → Main Menu
-   ├─→ AI Best Trade Finder → Best trade suggestion
-   └─→ Trading Inside → Categories
-         ├─→ Crypto → Asset list → Asset details
-         ├─→ Forex → Asset list → Asset details
-         ├─→ Indices → Asset list → Asset details
-         └─→ Commodities → Asset list → Asset details
-```
-
-## 🌐 Deployment
-
-### Deploy on Railway (Free)
-
-1. Create a [Railway](https://railway.app/) account
-2. Create a new project → "Deploy from GitHub repo"
-3. Connect your repository
-4. Add environment variable: `BOT_TOKEN`
-5. Railway will auto-detect `requirements.txt` and deploy
-
-### Deploy on Render (Free)
-
-1. Create a [Render](https://render.com/) account
-2. Create new "Web Service"
-3. Connect your GitHub repository
-4. Set build command: `pip install -r requirements.txt`
-5. Set start command: `python bot.py`
-6. Add environment variable: `BOT_TOKEN`
-
-### Deploy with Docker
-
-Create a `Dockerfile`:
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-CMD ["python", "bot.py"]
-```
-
-Then run:
-```bash
-docker build -t trading-bot .
-docker run -e BOT_TOKEN=your_token trading-bot
-```
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `BOT_TOKEN` | Telegram bot token | Required |
-| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | INFO |
-| `ADMIN_IDS` | Comma-separated admin user IDs (optional) | "" |
-
-### Customizing Assets
-
-Edit `assets/asset_lists.py` to add/remove assets:
-
-```python
-CRYPTO_ASSETS = [
-    "BTCUSDT",
-    "ETHUSDT",
-    "YOUR_SYMBOL_HERE",  # Add new assets here
-]
-```
-
-### Customizing Messages
-
-All bot messages are in `replies/messages.py`. Edit them to change:
-- Welcome message
-- Button labels
-- Error messages
-- Recommendation texts
-
-## 🔧 Troubleshooting
-
-### "BOT_TOKEN not found!"
-- Make sure you created `.env` file from `.env.example`
-- Check that `BOT_TOKEN` is set correctly (no quotes, no spaces)
-
-### "Data temporarily unavailable"
-- Network issue or API rate limit
-- Wait a few seconds and try again
-- Check logs in `data/bot.log`
-
-### Bot doesn't respond
-- Make sure bot is running (`python bot.py`)
-- Check if you're using the correct bot token
-- Verify the bot is not blocked
-
-### Import errors
-- Make sure you're in the `telegram_trading_bot` directory
-- Run `pip install -r requirements.txt` again
-- Check Python version (3.8+)
-
-## 📊 Data Sources
-
-- **Crypto**: Binance (via CCXT library) - Free public API
-- **Forex/Indices/Commodities**: Yahoo Finance (via yfinance) - Free
-
-No API keys required for basic usage!
-
-## ⚠️ Disclaimer
-
-This bot is for **educational and informational purposes only**. It does not provide financial advice. Always do your own research before making trading decisions. The developers are not responsible for any losses incurred from using this bot.
-
-## 📝 License
-
-MIT License - Feel free to use and modify for your projects.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit issues and pull requests.
-
-## 📞 Support
-
-For questions or issues:
-1. Check the logs in `data/bot.log`
-2. Review this README
-3. Open an issue on GitHub
-
----
-
-**Happy Trading! 📈**
+## Disclaimer
+This bot is for informational purposes only. It does not provide financial advice. Trade at your own risk.

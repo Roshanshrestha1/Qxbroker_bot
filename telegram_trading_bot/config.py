@@ -22,6 +22,40 @@ SMA_PERIOD = 20
 RSI_OVERBOUGHT = 70
 RSI_OVERSOLD = 30
 
+# Default timeframes and trade times
+DEFAULT_CHART_TIMEFRAME = "1h"
+DEFAULT_TRADE_TIME = "5m"
+
+# Available timeframes (TradingView compatible)
+AVAILABLE_TIMEFRAMES = {
+    "1m": "1 Minute",
+    "5m": "5 Minutes",
+    "15m": "15 Minutes",
+    "30m": "30 Minutes",
+    "1h": "1 Hour",
+    "4h": "4 Hours",
+    "1d": "1 Day",
+}
+
+# Available trade times (binary options style)
+AVAILABLE_TRADE_TIMES = {
+    "1m": "1 Minute",
+    "2m": "2 Minutes",
+    "5m": "5 Minutes",
+    "10m": "10 Minutes",
+    "15m": "15 Minutes",
+    "30m": "30 Minutes",
+    "1h": "1 Hour",
+}
+
+# Quotex/Broker specific timeframes
+QUOTEX_TIMEFRAMES = {
+    "turbo": "Turbo (1m)",
+    "short": "Short (5m)",
+    "medium": "Medium (15m)",
+    "long": "Long (1h)",
+}
+
 # Logging
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FILE = "data/bot.log"
