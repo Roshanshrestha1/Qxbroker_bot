@@ -48,6 +48,13 @@ echo "📦 Installing dependencies from requirements.txt..."
 pip install -r requirements.txt --quiet --break-system-packages 2>/dev/null || pip install -r requirements.txt --quiet
 echo "✅ Dependencies installed."
 
+# Install Playwright browsers if api_quotex is installed
+if pip show api_quotex &> /dev/null || grep -q "api_quotex" requirements.txt 2>/dev/null; then
+    echo ""
+    echo "🌐 Installing Playwright browsers (required for QX Broker login)..."
+    python -m playwright install chromium --quiet 2>/dev/null || echo "⚠️ Playwright browser installation skipped (may need manual installation)"
+fi
+
 # Setup .env file
 echo ""
 echo "=========================================="
@@ -78,7 +85,7 @@ if [ ! -f ".env" ]; then
         exit 1
     fi
     
-    # Create .env file with the token
+    # Start creating .env file
     cat > .env << EOF
 # Telegram Bot Token
 BOT_TOKEN=$BOT_TOKEN
@@ -91,7 +98,86 @@ ENABLE_TRADE_LOGGING=false
 EOF
     
     echo ""
-    echo "✅ .env file created successfully!"
+    echo "✅ Bot token saved!"
+fi
+
+# QX Broker Configuration
+echo ""
+echo "=========================================="
+echo "  📊 QX Broker Configuration             "
+echo "=========================================="
+echo ""
+echo "To use QX Broker as primary data source, enter your credentials."
+echo "Leave blank to use Yahoo Finance/Binance only."
+echo ""
+
+# Check if QX credentials already exist in .env
+QX_EMAIL_EXISTING=""
+QX_PASS_EXISTING=""
+if [ -f ".env" ]; then
+    QX_EMAIL_EXISTING=$(grep "^QX_EMAIL=" .env 2>/dev/null | cut -d'=' -f2)
+    QX_PASS_EXISTING=$(grep "^QX_PASSWORD=" .env 2>/dev/null | cut -d'=' -f2)
+fi
+
+if [ -n "$QX_EMAIL_EXISTING" ]; then
+    echo "⚠️  QX Broker credentials already configured."
+    echo "   Email: ${QX_EMAIL_EXISTING:0:3}***@${QX_EMAIL_EXISTING#*@}"
+    read -p "Do you want to update them? (y/n): " UPDATE_QX
+    if [[ ! "$UPDATE_QX" =~ ^[Yy]$ ]]; then
+        echo "ℹ️  Keeping existing QX Broker credentials."
+    else
+        # Remove old credentials
+        sed -i '/^QX_EMAIL=/d' .env 2>/dev/null || true
+        sed -i '/^QX_PASSWORD=/d' .env 2>/dev/null || true
+    fi
+fi
+
+# Check if we need to ask for QX credentials
+QX_NEEDS_CONFIG=true
+if [ -f ".env" ] && grep -q "^QX_EMAIL=" .env 2>/dev/null && grep -q "^QX_PASSWORD=" .env 2>/dev/null; then
+    QX_NEEDS_CONFIG=false
+fi
+
+if [ "$QX_NEEDS_CONFIG" = true ]; then
+    echo ""
+    echo "📝 Enter your QX Broker credentials:"
+    echo "   (These are used to fetch real-time market data)"
+    echo ""
+    read -p "QX Broker Email: " QX_EMAIL
+    read -sp "QX Broker Password: " QX_PASSWORD
+    echo ""
+    
+    if [ -n "$QX_EMAIL" ] && [ -n "$QX_PASSWORD" ]; then
+        # Append QX credentials to .env
+        cat >> .env << EOF
+
+# QX Broker Credentials (Primary Data Source)
+QX_EMAIL=$QX_EMAIL
+QX_PASSWORD=$QX_PASSWORD
+
+# Primary data source: "qxbroker" or "yfinance"
+PRIMARY_DATA_SOURCE=qxbroker
+
+# QX Broker connection timeout (seconds)
+QX_TIMEOUT=5
+EOF
+        echo ""
+        echo "✅ QX Broker credentials saved!"
+        echo "ℹ️  First run will open a browser window for authentication."
+    else
+        echo ""
+        echo "ℹ️  QX Broker credentials skipped. Using Yahoo Finance/Binance as data source."
+        echo "   You can add credentials later by editing .env file."
+        
+        # Add fallback config
+        if ! grep -q "^PRIMARY_DATA_SOURCE=" .env 2>/dev/null; then
+            cat >> .env << EOF
+
+# Primary data source: "qxbroker" or "yfinance"
+PRIMARY_DATA_SOURCE=yfinance
+EOF
+        fi
+    fi
 fi
 
 # Verify .env file exists
@@ -107,6 +193,9 @@ echo "=========================================="
 echo ""
 echo "ℹ️  The bot is now starting..."
 echo "ℹ️  Press Ctrl+C to stop the bot."
+echo ""
+echo "⚠️  NOTE: On first run, a browser window may open for QX Broker authentication."
+echo "    Complete the login, then close the browser to continue."
 echo ""
 
 # Run the bot
