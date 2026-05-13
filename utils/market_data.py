@@ -1,7 +1,7 @@
 """
 Market Data Utilities for QX Broker Bot
 Handles real-time data fetching and AI scanning for all QX Broker assets.
-Uses TradingView API for Forex, Yahoo Finance for Crypto/Commodities/Indices/Stocks.
+Uses TradingView API for Forex, Binance API for Crypto, Yahoo Finance for Commodities/Indices/Stocks.
 """
 import yfinance as yf
 import pandas as pd
@@ -29,14 +29,29 @@ TRADINGVIEW_FOREX = {
     "EURTRY": "OANDA:EURTRY"
 }
 
+# Binance Crypto Symbols (Trading pairs)
+BINANCE_CRYPTO = {
+    "BTC": "BTCUSDT",
+    "ETH": "ETHUSDT",
+    "BNB": "BNBUSDT",
+    "XRP": "XRPUSDT",
+    "SOL": "SOLUSDT",
+    "ADA": "ADAUSDT",
+    "DOGE": "DOGEUSDT",
+    "AVAX": "AVAXUSDT",
+    "DOT": "DOTUSDT",
+    "MATIC": "MATICUSDT",
+    "LTC": "LTCUSDT",
+    "LINK": "LINKUSDT",
+    "ATOM": "ATOMUSDT",
+    "UNI": "UNIUSDT",
+    "ETC": "ETCUSDT"
+}
+
 # Comprehensive QX Broker Asset List - Using correct Yahoo Finance symbols
 QX_ASSETS = {
     "FOREX": list(TRADINGVIEW_FOREX.keys()),
-    "CRYPTO": [
-        "BTC-USD", "ETH-USD", "BNB-USD", "XRP-USD", "SOL-USD",
-        "ADA-USD", "DOGE-USD", "AVAX-USD", "DOT-USD", "MATIC-USD",
-        "LTC-USD", "LINK-USD", "ATOM-USD", "UNI-USD", "ETC-USD"
-    ],
+    "CRYPTO": list(BINANCE_CRYPTO.keys()),
     "COMMODITIES": [
         "GC=F", "SI=F", "PL=F", "PA=F", 
         "CL=F", "BZ=F", "NG=F", "HG=F", "ZC=F", "ZW=F"
@@ -63,6 +78,8 @@ for category, symbols in QX_ASSETS.items():
         ASSET_CATEGORY_MAP[symbol] = category
         if category == "FOREX":
             SYMBOL_SOURCE_MAP[symbol] = "TRADINGVIEW"
+        elif category == "CRYPTO":
+            SYMBOL_SOURCE_MAP[symbol] = "BINANCE"
         else:
             SYMBOL_SOURCE_MAP[symbol] = "YAHOO"
 
@@ -71,6 +88,58 @@ def get_asset_category(symbol):
 
 def get_symbol_source(symbol):
     return SYMBOL_SOURCE_MAP.get(symbol, "YAHOO")
+
+def fetch_binance_crypto(symbol, timeframe='1m', bars=100):
+    """
+    Fetch Crypto data from Binance API
+    Timeframe mapping: 1m, 5m, 15m, 30m, 1h, 4h, 1d
+    """
+    try:
+        binance_symbol = BINANCE_CRYPTO.get(symbol)
+        if not binance_symbol:
+            return None
+        
+        # Map timeframes to Binance intervals
+        tf_map = {
+            '1m': '1m', '5m': '5m', '15m': '15m', '30m': '30m',
+            '1h': '1h', '4h': '4h', '1d': '1d'
+        }
+        interval = tf_map.get(timeframe, '5m')
+        
+        # Binance API endpoint for klines (candlestick data)
+        url = "https://api.binance.com/api/v3/klines"
+        params = {
+            'symbol': binance_symbol,
+            'interval': interval,
+            'limit': bars
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if not data:
+            return None
+        
+        # Convert to DataFrame
+        df_data = []
+        for candle in data:
+            df_data.append({
+                'timestamp': pd.to_datetime(candle[0], unit='ms'),
+                'Open': float(candle[1]),
+                'High': float(candle[2]),
+                'Low': float(candle[3]),
+                'Close': float(candle[4]),
+                'Volume': float(candle[5])
+            })
+        
+        df = pd.DataFrame(df_data)
+        df.set_index('timestamp', inplace=True)
+        return df
+        
+    except Exception as e:
+        print(f"Binance error for {symbol}: {e}")
+        return None
 
 def fetch_tradingview_forex(symbol, timeframe='1m', bars=100):
     """
@@ -125,6 +194,8 @@ def fetch_data(symbol, timeframe='1m', period='5d'):
     
     if source == "TRADINGVIEW":
         return fetch_tradingview_forex(symbol, timeframe, bars=100)
+    elif source == "BINANCE":
+        return fetch_binance_crypto(symbol, timeframe, bars=100)
     else:
         # Convert short symbol to Yahoo format for non-forex
         return fetch_yahoo_data(symbol, timeframe, period)
@@ -200,8 +271,12 @@ def scan_top_assets(limit=10):
             if score >= 40:
                 category = get_asset_category(symbol)
                 source = get_symbol_source(symbol)
-                # Clean name for display
-                display_name = symbol.replace("=X", "").replace("^", "")
+                # Clean name for display - handle different symbol formats
+                display_name = symbol
+                if symbol in BINANCE_CRYPTO:
+                    display_name = symbol  # Keep crypto symbols clean (BTC, ETH, etc.)
+                else:
+                    display_name = symbol.replace("=X", "").replace("^", "")
                 
                 opportunities.append({
                     "symbol": symbol,
@@ -266,7 +341,13 @@ def get_ai_analysis(symbol, chart_tf, trade_tf):
     display_symbol = symbol.replace("=X", "").replace("^", "")
     category = get_asset_category(symbol)
     source = get_symbol_source(symbol)
-    data_source_text = "📊 **Data Source:** TradingView (OANDA)" if source == "TRADINGVIEW" else "📊 **Data Source:** Yahoo Finance"
+    
+    if source == "TRADINGVIEW":
+        data_source_text = "📊 **Data Source:** TradingView (OANDA)"
+    elif source == "BINANCE":
+        data_source_text = "📊 **Data Source:** Binance API"
+    else:
+        data_source_text = "📊 **Data Source:** Yahoo Finance"
     
     analysis_text = (
         f"📊 **AI Analysis for {display_symbol} ({category})**\n\n"
