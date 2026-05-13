@@ -2,6 +2,7 @@
 Market Data Utilities for QX Broker Bot
 Handles real-time data fetching and AI scanning for all QX Broker assets.
 Uses TradingView API for Forex, Binance API for Crypto, Yahoo Finance for Commodities/Indices/Stocks.
+EXACTLY MATCHING QX BROKER ASSET NAMES.
 """
 import yfinance as yf
 import pandas as pd
@@ -11,194 +12,129 @@ import asyncio
 import requests
 import time
 
-# TradingView Forex Pairs (Official OANDA symbols)
-TRADINGVIEW_FOREX = {
-    "EURUSD": "OANDA:EURUSD",
-    "GBPUSD": "OANDA:GBPUSD", 
-    "USDJPY": "OANDA:USDJPY",
-    "AUDUSD": "OANDA:AUDUSD",
-    "USDCAD": "OANDA:USDCAD",
-    "USDCHF": "OANDA:USDCHF",
-    "NZDUSD": "OANDA:NZDUSD",
-    "EURGBP": "OANDA:EURGBP",
-    "EURJPY": "OANDA:EURJPY",
-    "GBPJPY": "OANDA:GBPJPY",
-    "USDZAR": "OANDA:USDZAR",
-    "USDMXN": "OANDA:USDMXN",
-    "USDTRY": "OANDA:USDTRY",
-    "EURTRY": "OANDA:EURTRY"
+# QX Broker Asset Name -> Yahoo Finance Symbol Mapping
+QX_TO_YAHOO_MAP = {
+    # Crypto (OTC) - Map to Yahoo Finance crypto symbols
+    "Cosmos (OTC)": "ATOM-USD",
+    "Avalanche (OTC)": "AVAX-USD",
+    "Axie Infinity (OTC)": "AXS-USD",
+    "Bitcoin Cash (OTC)": "BCH-USD",
+    "Binance Coin (OTC)": "BNB-USD",
+    "Ripple (OTC)": "XRP-USD",
+    "Bitcoin (OTC)": "BTC-USD",
+    "Polkadot (OTC)": "DOT-USD",
+    "Ethereum Classic (OTC)": "ETC-USD",
+    "Litecoin (OTC)": "LTC-USD",
+    "Trump (OTC)": "MAGA-USD",
+    "Solana (OTC)": "SOL-USD",
+    "Dash (OTC)": "DASH-USD",
+    "Ethereum (OTC)": "ETH-USD",
+    "Zcash (OTC)": "ZEC-USD",
+    "Chainlink (OTC)": "LINK-USD",
+    # Forex pairs - Map to Yahoo Finance forex symbols
+    "USD/ZAR (OTC)": "USDZAR=X",
+    "USD/INR (OTC)": "USDINR=X",
+    "USD/MXN (OTC)": "USDMXN=X",
+    "USD/BRL (OTC)": "USDBRL=X",
+    "USD/EGP (OTC)": "USDEGP=X",
+    "NZD/CHF (OTC)": "NZDCHF=X",
+    "USD/PKR (OTC)": "USDPKR=X",
+    "USD/IDR (OTC)": "USDIDR=X",
+    "USD/DZD (OTC)": "USDDZD=X",
+    "USD/BDT (OTC)": "USDBDT=X",
+    "USD/JPY": "USDJPY=X",
+    "USD/NGN (OTC)": "USDNGN=X",
+    "NZD/JPY (OTC)": "NZDJPY=X",
+    "EUR/JPY": "EURJPY=X",
+    "EUR/USD": "EURUSD=X",
+    "NZD/USD (OTC)": "NZDUSD=X",
+    "AUD/NZD (OTC)": "AUDNZD=X",
+    "EUR/GBP": "EURGBP=X",
+    "GBP/USD": "GBPUSD=X",
+    "CAD/CHF (OTC)": "CADCHF=X",
+    "NZD/CAD (OTC)": "NZDCAD=X",
+    "USD/COP (OTC)": "USDCOP=X",
+    "USD/PHP (OTC)": "USDPHP=X",
+    "EUR/NZD (OTC)": "EURNZD=X",
+    "AUD/JPY": "AUDJPY=X",
+    "CAD/JPY": "CADJPY=X",
+    "EUR/CAD": "EURCAD=X",
+    "GBP/CAD": "GBPCAD=X",
+    "AUD/CHF": "AUDCHF=X",
+    "AUD/USD": "AUDUSD=X",
+    "USD/CHF": "USDCHF=X",
+    "CHF/JPY": "CHFJPY=X",
+    "AUD/CAD": "AUDCAD=X",
+    "GBP/JPY": "GBPJPY=X",
+    "USD/CAD": "USDCAD=X",
+    "EUR/AUD": "EURAUD=X",
+    "EUR/CHF": "EURCHF=X",
+    "GBP/CHF": "GBPCHF=X",
+    "GBP/AUD": "GBPAUD=X",
+    # Commodities - Map to Yahoo Finance commodity symbols
+    "UKBrent (OTC)": "BZ=F",
+    "USCrude (OTC)": "CL=F",
+    "Silver": "SI=F",
+    "Gold": "GC=F",
+    # Stocks - Map to Yahoo Finance stock symbols
+    "Boeing Company (OTC)": "BA",
+    "Intel (OTC)": "INTC",
+    "Johnson & Johnson (OTC)": "JNJ",
+    "Microsoft (OTC)": "MSFT",
+    "Pfizer Inc (OTC)": "PFE",
+    "FACEBOOK INC (OTC)": "META",
+    "American Express (OTC)": "AXP",
+    "McDonald's (OTC)": "MCD",
+    # Indices - Map to Yahoo Finance index symbols
+    "CAC 40": "^FCHI",
+    "EURO STOXX 50": "^STOXX50E",
+    "S&P/ASX 200": "^AXJO",
+    "FTSE 100": "^FTSE",
+    "IBEX 35": "^IBEX",
+    "Nikkei 225": "^N225",
+    "FTSE China A50 Index": "ASHR",
+    "Hong Kong 50": "^HSI",
 }
 
-# Binance Crypto Symbols (Trading pairs)
-BINANCE_CRYPTO = {
-    "BTC": "BTCUSDT",
-    "ETH": "ETHUSDT",
-    "BNB": "BNBUSDT",
-    "XRP": "XRPUSDT",
-    "SOL": "SOLUSDT",
-    "ADA": "ADAUSDT",
-    "DOGE": "DOGEUSDT",
-    "AVAX": "AVAXUSDT",
-    "DOT": "DOTUSDT",
-    "MATIC": "MATICUSDT",
-    "LTC": "LTCUSDT",
-    "LINK": "LINKUSDT",
-    "ATOM": "ATOMUSDT",
-    "UNI": "UNIUSDT",
-    "ETC": "ETCUSDT"
-}
+# Reverse map: Yahoo Symbol -> QX Name
+YAHOO_TO_QX_MAP = {v: k for k, v in QX_TO_YAHOO_MAP.items()}
 
-# Comprehensive QX Broker Asset List - Using correct Yahoo Finance symbols
-QX_ASSETS = {
-    "FOREX": list(TRADINGVIEW_FOREX.keys()),
-    "CRYPTO": list(BINANCE_CRYPTO.keys()),
-    "COMMODITIES": [
-        "GC=F", "SI=F", "PL=F", "PA=F", 
-        "CL=F", "BZ=F", "NG=F", "HG=F", "ZC=F", "ZW=F"
-    ],
-    "INDICES": [
-        "^GSPC", "^DJI", "^IXIC", "^NYA", "^RUT", 
-        "^VIX", "^FTSE", "^GDAXI", "^FCHI", "^N225", "^HSI", "^AXJO"
-    ],
-    "STOCKS": [
-        "AAPL", "TSLA", "NVDA", "MSFT", "AMZN", 
-        "GOOGL", "META", "AMD", "NFLX", "COIN",
-        "BA", "DIS", "V", "JPM", "WMT"
-    ]
-}
+# Import asset lists from assets module
+from assets.asset_lists import ALL_ASSETS, CRYPTO_ASSETS, FOREX_ASSETS, COMMODITIES_ASSETS, STOCKS_ASSETS, INDICES_ASSETS
 
-# Flat list for easy iteration
+# Build category map and flat list from the new asset lists
 ALL_ASSET_SYMBOLS = []
 ASSET_CATEGORY_MAP = {}
-SYMBOL_SOURCE_MAP = {}  # Track which source to use
 
-for category, symbols in QX_ASSETS.items():
+for category, symbols in ALL_ASSETS.items():
     for symbol in symbols:
         ALL_ASSET_SYMBOLS.append(symbol)
         ASSET_CATEGORY_MAP[symbol] = category
-        if category == "FOREX":
-            SYMBOL_SOURCE_MAP[symbol] = "TRADINGVIEW"
-        elif category == "CRYPTO":
-            SYMBOL_SOURCE_MAP[symbol] = "BINANCE"
-        else:
-            SYMBOL_SOURCE_MAP[symbol] = "YAHOO"
 
 def get_asset_category(symbol):
+    """Get the category (crypto, forex, etc.) for a QX Broker asset name."""
     return ASSET_CATEGORY_MAP.get(symbol, "UNKNOWN")
 
-def get_symbol_source(symbol):
-    return SYMBOL_SOURCE_MAP.get(symbol, "YAHOO")
+def get_yahoo_symbol(qx_symbol):
+    """Convert QX Broker asset name to Yahoo Finance symbol."""
+    return QX_TO_YAHOO_MAP.get(qx_symbol, qx_symbol)
 
-def fetch_binance_crypto(symbol, timeframe='1m', bars=100):
+def fetch_data(symbol, timeframe='1m', period='5d'):
     """
-    Fetch Crypto data from Binance API
-    Timeframe mapping: 1m, 5m, 15m, 30m, 1h, 4h, 1d
+    Fetches data from Yahoo Finance using the QX Broker asset name.
+    Automatically converts QX name to Yahoo symbol internally.
     """
     try:
-        binance_symbol = BINANCE_CRYPTO.get(symbol)
-        if not binance_symbol:
-            return None
-        
-        # Map timeframes to Binance intervals
-        tf_map = {
-            '1m': '1m', '5m': '5m', '15m': '15m', '30m': '30m',
-            '1h': '1h', '4h': '4h', '1d': '1d'
-        }
-        interval = tf_map.get(timeframe, '5m')
-        
-        # Binance API endpoint for klines (candlestick data)
-        url = "https://api.binance.com/api/v3/klines"
-        params = {
-            'symbol': binance_symbol,
-            'interval': interval,
-            'limit': bars
-        }
-        
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        
-        if not data:
-            return None
-        
-        # Convert to DataFrame
-        df_data = []
-        for candle in data:
-            df_data.append({
-                'timestamp': pd.to_datetime(candle[0], unit='ms'),
-                'Open': float(candle[1]),
-                'High': float(candle[2]),
-                'Low': float(candle[3]),
-                'Close': float(candle[4]),
-                'Volume': float(candle[5])
-            })
-        
-        df = pd.DataFrame(df_data)
-        df.set_index('timestamp', inplace=True)
-        return df
-        
-    except Exception as e:
-        print(f"Binance error for {symbol}: {e}")
-        return None
-
-def fetch_tradingview_forex(symbol, timeframe='1m', bars=100):
-    """
-    Fetch Forex data from TradingView via OANDA using their public endpoint
-    Timeframe mapping: 1m, 5m, 15m, 30m, 1h, 4h, 1d
-    """
-    try:
-        tv_symbol = TRADINGVIEW_FOREX.get(symbol)
-        if not tv_symbol:
-            return None
-        
-        # Map timeframes to TradingView resolution
-        tf_map = {
-            '1m': '1', '5m': '5', '15m': '15', '30m': '30',
-            '1h': '60', '4h': '240', '1d': 'D'
-        }
-        resolution = tf_map.get(timeframe, '5')
-        
-        # Use TradingView's historical data endpoint
-        url = "https://symbol-search.tradingview.com/symbol_search/v2/"
-        
-        # Alternative: Use OANDA's free API through yfinance with forex pair
-        forex_yf_symbol = f"{symbol}=X"
-        ticker = yf.Ticker(forex_yf_symbol)
-        df = ticker.history(period='5d', interval=timeframe)
-        
-        if df.empty:
-            return None
-            
-        return df
-        
-    except Exception as e:
-        print(f"TradingView error for {symbol}: {e}")
-        # Fallback to Yahoo Finance
-        return fetch_yahoo_data(f"{symbol}=X", timeframe)
-
-def fetch_yahoo_data(symbol, timeframe='1m', period='5d'):
-    """Fetches data from Yahoo Finance"""
-    try:
-        ticker = yf.Ticker(symbol)
+        # Convert QX Broker name to Yahoo Finance symbol
+        yahoo_symbol = get_yahoo_symbol(symbol)
+        ticker = yf.Ticker(yahoo_symbol)
         df = ticker.history(period=period, interval=timeframe)
         if df.empty:
             return None
         return df
     except Exception as e:
-        print(f"Yahoo error for {symbol}: {e}")
+        print(f"Yahoo error for {symbol} ({yahoo_symbol}): {e}")
         return None
-
-def fetch_data(symbol, timeframe='1m', period='5d'):
-    """Fetches data from appropriate source based on asset type"""
-    source = get_symbol_source(symbol)
-    
-    if source == "TRADINGVIEW":
-        return fetch_tradingview_forex(symbol, timeframe, bars=100)
-    elif source == "BINANCE":
-        return fetch_binance_crypto(symbol, timeframe, bars=100)
-    else:
-        # Convert short symbol to Yahoo format for non-forex
-        return fetch_yahoo_data(symbol, timeframe, period)
 
 def calculate_rsi(df, period=14):
     delta = df['Close'].diff()
@@ -270,19 +206,13 @@ def scan_top_assets(limit=10):
             # Only add if there's a decent signal
             if score >= 40:
                 category = get_asset_category(symbol)
-                source = get_symbol_source(symbol)
-                # Clean name for display - handle different symbol formats
+                # Display name is already the QX Broker name (no cleaning needed)
                 display_name = symbol
-                if symbol in BINANCE_CRYPTO:
-                    display_name = symbol  # Keep crypto symbols clean (BTC, ETH, etc.)
-                else:
-                    display_name = symbol.replace("=X", "").replace("^", "")
                 
                 opportunities.append({
                     "symbol": symbol,
                     "name": display_name,
                     "category": category,
-                    "source": source,
                     "score": score,
                     "signal": signal,
                     "price": current_price,
@@ -337,17 +267,12 @@ def get_ai_analysis(symbol, chart_tf, trade_tf):
         confidence = 60 + np.random.randint(0, 15)
         reason = "Price is below moving average indicating bearish momentum."
 
-    # Clean symbol name for display
-    display_symbol = symbol.replace("=X", "").replace("^", "")
+    # Symbol name is already the QX Broker name (no cleaning needed)
+    display_symbol = symbol
     category = get_asset_category(symbol)
-    source = get_symbol_source(symbol)
     
-    if source == "TRADINGVIEW":
-        data_source_text = "📊 **Data Source:** TradingView (OANDA)"
-    elif source == "BINANCE":
-        data_source_text = "📊 **Data Source:** Binance API"
-    else:
-        data_source_text = "📊 **Data Source:** Yahoo Finance"
+    # All data now comes from Yahoo Finance via mapping
+    data_source_text = "📊 **Data Source:** Yahoo Finance"
     
     analysis_text = (
         f"📊 **AI Analysis for {display_symbol} ({category})**\n\n"

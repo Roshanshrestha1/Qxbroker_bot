@@ -14,7 +14,7 @@ from utils.market_data import (
     scan_top_assets,
     get_asset_category,
     ALL_ASSET_SYMBOLS,
-    QX_ASSETS,
+    ALL_ASSETS,
 )
 from utils.telegram_helpers import (
     format_price,
@@ -40,7 +40,7 @@ __all__ = [
     "scan_top_assets",
     "get_asset_category",
     "ALL_ASSET_SYMBOLS",
-    "QX_ASSETS",
+    "ALL_ASSETS",
     "format_price",
     "format_volume",
     "get_asset_display_name",

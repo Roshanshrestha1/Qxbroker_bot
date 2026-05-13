@@ -1,89 +1,98 @@
-"""Asset lists for trading analysis - Synced with QX Broker and market_data.py."""
+"""Asset lists for trading analysis - EXACTLY matching QX Broker available assets."""
 
-# Crypto assets (Yahoo Finance symbols matching market_data.py)
+# Crypto assets (EXACT names as shown in QX Broker)
 CRYPTO_ASSETS = [
-    "BTC-USD",
-    "ETH-USD",
-    "BNB-USD",
-    "SOL-USD",
-    "XRP-USD",
-    "ADA-USD",
-    "DOGE-USD",
-    "AVAX-USD",
-    "LINK-USD",
-    "MATIC-USD",
-    "LTC-USD",
-    "DOT-USD",
-    "ATOM-USD",
-    "UNI-USD",
-    "ETC-USD",
+    "Cosmos (OTC)",
+    "Avalanche (OTC)",
+    "Axie Infinity (OTC)",
+    "Bitcoin Cash (OTC)",
+    "Binance Coin (OTC)",
+    "Ripple (OTC)",
+    "Bitcoin (OTC)",
+    "Polkadot (OTC)",
+    "Ethereum Classic (OTC)",
+    "Litecoin (OTC)",
+    "Trump (OTC)",
+    "Solana (OTC)",
+    "Dash (OTC)",
+    "Ethereum (OTC)",
+    "Zcash (OTC)",
+    "Chainlink (OTC)",
 ]
 
-# Forex pairs (Simple names - will be mapped to TradingView OANDA in market_data.py)
+# Forex pairs (EXACT names as shown in QX Broker)
 FOREX_ASSETS = [
-    "EURUSD",
-    "GBPUSD",
-    "USDJPY",
-    "AUDUSD",
-    "USDCAD",
-    "USDCHF",
-    "NZDUSD",
-    "EURGBP",
-    "EURJPY",
-    "GBPJPY",
-    "USDZAR",
-    "USDMXN",
-    "USDTRY",
-    "EURTRY",
+    "USD/ZAR (OTC)",
+    "USD/INR (OTC)",
+    "USD/MXN (OTC)",
+    "USD/BRL (OTC)",
+    "USD/EGP (OTC)",
+    "NZD/CHF (OTC)",
+    "USD/PKR (OTC)",
+    "USD/IDR (OTC)",
+    "USD/DZD (OTC)",
+    "USD/BDT (OTC)",
+    "USD/JPY",
+    "USD/NGN (OTC)",
+    "NZD/JPY (OTC)",
+    "EUR/JPY",
+    "EUR/USD",
+    "NZD/USD (OTC)",
+    "AUD/NZD (OTC)",
+    "EUR/GBP",
+    "GBP/USD",
+    "CAD/CHF (OTC)",
+    "NZD/CAD (OTC)",
+    "USD/COP (OTC)",
+    "USD/PHP (OTC)",
+    "EUR/NZD (OTC)",
+    "AUD/JPY",
+    "CAD/JPY",
+    "EUR/CAD",
+    "GBP/CAD",
+    "AUD/CHF",
+    "AUD/USD",
+    "USD/CHF",
+    "CHF/JPY",
+    "AUD/CAD",
+    "GBP/JPY",
+    "USD/CAD",
+    "EUR/AUD",
+    "EUR/CHF",
+    "GBP/CHF",
+    "GBP/AUD",
 ]
 
-# Indices (Yahoo Finance symbols)
-INDICES_ASSETS = [
-    "^GSPC",    # S&P 500 Index
-    "^DJI",     # Dow Jones
-    "^IXIC",    # NASDAQ Composite
-    "^NYA",     # NYSE
-    "^RUT",     # Russell 2000
-    "^VIX",     # Volatility Index
-    "^FTSE",    # FTSE 100
-    "^GDAXI",   # DAX
-    "^FCHI",    # CAC 40
-    "^N225",    # Nikkei 225
-    "^HSI",     # Hang Seng
-    "^AXJO",    # ASX 200
-]
-
-# Commodities (Yahoo Finance symbols)
+# Commodities (EXACT names as shown in QX Broker)
 COMMODITIES_ASSETS = [
-    "GC=F",     # Gold
-    "SI=F",     # Silver
-    "PL=F",     # Platinum
-    "PA=F",     # Palladium
-    "CL=F",     # Crude Oil WTI
-    "BZ=F",     # Brent Oil
-    "NG=F",     # Natural Gas
-    "HG=F",     # Copper
-    "ZC=F",     # Corn
-    "ZW=F",     # Wheat
+    "UKBrent (OTC)",
+    "USCrude (OTC)",
+    "Silver",
+    "Gold",
 ]
 
-# Stocks (Yahoo Finance symbols)
+# Stocks (EXACT names as shown in QX Broker)
 STOCKS_ASSETS = [
-    "AAPL",     # Apple
-    "TSLA",     # Tesla
-    "NVDA",     # NVIDIA
-    "MSFT",     # Microsoft
-    "AMZN",     # Amazon
-    "GOOGL",    # Google
-    "META",     # Meta
-    "AMD",      # AMD
-    "NFLX",     # Netflix
-    "COIN",     # Coinbase
-    "BA",       # Boeing
-    "DIS",      # Disney
-    "V",        # Visa
-    "JPM",      # JPMorgan
-    "WMT",      # Walmart
+    "Boeing Company (OTC)",
+    "Intel (OTC)",
+    "Johnson & Johnson (OTC)",
+    "Microsoft (OTC)",
+    "Pfizer Inc (OTC)",
+    "FACEBOOK INC (OTC)",
+    "American Express (OTC)",
+    "McDonald's (OTC)",
+]
+
+# Indices (EXACT names as shown in QX Broker)
+INDICES_ASSETS = [
+    "CAC 40",
+    "EURO STOXX 50",
+    "S&P/ASX 200",
+    "FTSE 100",
+    "IBEX 35",
+    "Nikkei 225",
+    "FTSE China A50 Index",
+    "Hong Kong 50",
 ]
 
 # Combined asset list for AI Best Trade Finder
@@ -104,77 +113,86 @@ CATEGORY_NAMES = {
     "stocks": "📊 Stocks",
 }
 
-# Asset display name mapping (symbol -> friendly name)
+# Asset display name mapping (symbol -> friendly name) - Now assets ARE the friendly names
 ASSET_NAMES = {
-    # Crypto
-    "BTC-USD": "Bitcoin",
-    "ETH-USD": "Ethereum",
-    "BNB-USD": "Binance Coin",
-    "SOL-USD": "Solana",
-    "XRP-USD": "Ripple",
-    "ADA-USD": "Cardano",
-    "DOGE-USD": "Dogecoin",
-    "AVAX-USD": "Avalanche",
-    "LINK-USD": "Chainlink",
-    "MATIC-USD": "Polygon",
-    "LTC-USD": "Litecoin",
-    "DOT-USD": "Polkadot",
-    "ATOM-USD": "Cosmos",
-    "UNI-USD": "Uniswap",
-    "ETC-USD": "Ethereum Classic",
-    # Forex
-    "EURUSD": "EUR/USD",
-    "GBPUSD": "GBP/USD",
-    "USDJPY": "USD/JPY",
-    "AUDUSD": "AUD/USD",
-    "USDCAD": "USD/CAD",
-    "USDCHF": "USD/CHF",
-    "NZDUSD": "NZD/USD",
-    "EURGBP": "EUR/GBP",
-    "EURJPY": "EUR/JPY",
-    "GBPJPY": "GBP/JPY",
-    "USDZAR": "USD/ZAR",
-    "USDMXN": "USD/MXN",
-    "USDTRY": "USD/TRY",
-    "EURTRY": "EUR/TRY",
-    # Indices
-    "^GSPC": "S&P 500",
-    "^DJI": "Dow Jones",
-    "^IXIC": "NASDAQ",
-    "^NYA": "NYSE",
-    "^RUT": "Russell 2000",
-    "^VIX": "VIX",
-    "^FTSE": "FTSE 100",
-    "^GDAXI": "DAX",
-    "^FCHI": "CAC 40",
-    "^N225": "Nikkei 225",
-    "^HSI": "Hang Seng",
-    "^AXJO": "ASX 200",
-    # Commodities
-    "GC=F": "Gold",
-    "SI=F": "Silver",
-    "PL=F": "Platinum",
-    "PA=F": "Palladium",
-    "CL=F": "Crude Oil WTI",
-    "BZ=F": "Brent Oil",
-    "NG=F": "Natural Gas",
-    "HG=F": "Copper",
-    "ZC=F": "Corn",
-    "ZW=F": "Wheat",
-    # Stocks
-    "AAPL": "Apple",
-    "TSLA": "Tesla",
-    "NVDA": "NVIDIA",
-    "MSFT": "Microsoft",
-    "AMZN": "Amazon",
-    "GOOGL": "Google",
-    "META": "Meta",
-    "AMD": "AMD",
-    "NFLX": "Netflix",
-    "COIN": "Coinbase",
-    "BA": "Boeing",
-    "DIS": "Disney",
-    "V": "Visa",
-    "JPM": "JPMorgan",
-    "WMT": "Walmart",
+    # Crypto - names are already friendly
+    "Cosmos (OTC)": "Cosmos",
+    "Avalanche (OTC)": "Avalanche",
+    "Axie Infinity (OTC)": "Axie Infinity",
+    "Bitcoin Cash (OTC)": "Bitcoin Cash",
+    "Binance Coin (OTC)": "Binance Coin",
+    "Ripple (OTC)": "Ripple",
+    "Bitcoin (OTC)": "Bitcoin",
+    "Polkadot (OTC)": "Polkadot",
+    "Ethereum Classic (OTC)": "Ethereum Classic",
+    "Litecoin (OTC)": "Litecoin",
+    "Trump (OTC)": "Trump",
+    "Solana (OTC)": "Solana",
+    "Dash (OTC)": "Dash",
+    "Ethereum (OTC)": "Ethereum",
+    "Zcash (OTC)": "Zcash",
+    "Chainlink (OTC)": "Chainlink",
+    # Forex - names are already friendly
+    "USD/ZAR (OTC)": "USD/ZAR",
+    "USD/INR (OTC)": "USD/INR",
+    "USD/MXN (OTC)": "USD/MXN",
+    "USD/BRL (OTC)": "USD/BRL",
+    "USD/EGP (OTC)": "USD/EGP",
+    "NZD/CHF (OTC)": "NZD/CHF",
+    "USD/PKR (OTC)": "USD/PKR",
+    "USD/IDR (OTC)": "USD/IDR",
+    "USD/DZD (OTC)": "USD/DZD",
+    "USD/BDT (OTC)": "USD/BDT",
+    "USD/JPY": "USD/JPY",
+    "USD/NGN (OTC)": "USD/NGN",
+    "NZD/JPY (OTC)": "NZD/JPY",
+    "EUR/JPY": "EUR/JPY",
+    "EUR/USD": "EUR/USD",
+    "NZD/USD (OTC)": "NZD/USD",
+    "AUD/NZD (OTC)": "AUD/NZD",
+    "EUR/GBP": "EUR/GBP",
+    "GBP/USD": "GBP/USD",
+    "CAD/CHF (OTC)": "CAD/CHF",
+    "NZD/CAD (OTC)": "NZD/CAD",
+    "USD/COP (OTC)": "USD/COP",
+    "USD/PHP (OTC)": "USD/PHP",
+    "EUR/NZD (OTC)": "EUR/NZD",
+    "AUD/JPY": "AUD/JPY",
+    "CAD/JPY": "CAD/JPY",
+    "EUR/CAD": "EUR/CAD",
+    "GBP/CAD": "GBP/CAD",
+    "AUD/CHF": "AUD/CHF",
+    "AUD/USD": "AUD/USD",
+    "USD/CHF": "USD/CHF",
+    "CHF/JPY": "CHF/JPY",
+    "AUD/CAD": "AUD/CAD",
+    "GBP/JPY": "GBP/JPY",
+    "USD/CAD": "USD/CAD",
+    "EUR/AUD": "EUR/AUD",
+    "EUR/CHF": "EUR/CHF",
+    "GBP/CHF": "GBP/CHF",
+    "GBP/AUD": "GBP/AUD",
+    # Commodities - names are already friendly
+    "UKBrent (OTC)": "UKBrent",
+    "USCrude (OTC)": "USCrude",
+    "Silver": "Silver",
+    "Gold": "Gold",
+    # Stocks - names are already friendly
+    "Boeing Company (OTC)": "Boeing",
+    "Intel (OTC)": "Intel",
+    "Johnson & Johnson (OTC)": "Johnson & Johnson",
+    "Microsoft (OTC)": "Microsoft",
+    "Pfizer Inc (OTC)": "Pfizer",
+    "FACEBOOK INC (OTC)": "Facebook",
+    "American Express (OTC)": "American Express",
+    "McDonald's (OTC)": "McDonald's",
+    # Indices - names are already friendly
+    "CAC 40": "CAC 40",
+    "EURO STOXX 50": "EURO STOXX 50",
+    "S&P/ASX 200": "S&P/ASX 200",
+    "FTSE 100": "FTSE 100",
+    "IBEX 35": "IBEX 35",
+    "Nikkei 225": "Nikkei 225",
+    "FTSE China A50 Index": "FTSE China A50",
+    "Hong Kong 50": "Hong Kong 50",
 }
