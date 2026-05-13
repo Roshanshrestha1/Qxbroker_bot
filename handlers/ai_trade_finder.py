@@ -59,6 +59,7 @@ async def ai_trade_finder_callback(update: Update, context: ContextTypes.DEFAULT
             score = asset['score']
             rsi = asset['rsi']
             category = asset['category']
+            source = asset.get('source', 'YAHOO')
             
             # Medal emoji for top 3
             if i == 1:
@@ -72,7 +73,10 @@ async def ai_trade_finder_callback(update: Update, context: ContextTypes.DEFAULT
             
             signal_emoji = "🟢" if "CALL" in signal or "Buy" in signal else "🔴"
             
-            message += f"{medal} *#{i} - {name}* ({category})\n"
+            # Show data source icon
+            source_icon = "📊" if source == "TRADINGVIEW" else "💹"
+            
+            message += f"{medal} *#{i} - {name}* ({category}) {source_icon}\n"
             message += f"   Signal: {signal_emoji} {signal}\n"
             message += f"   Score: {score}/100 | RSI: {rsi:.1f}\n\n"
             
