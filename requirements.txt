@@ -5,3 +5,5 @@ python-dotenv>=1.0.0
 numpy>=1.24.0
 pandas>=2.0.0
 requests>=2.31.0
+# Optional: QX Broker unofficial API (if available)
+# quotexapi>=1.0.0  # Uncomment if using actual QX Broker integration

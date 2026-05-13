@@ -4,13 +4,31 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Logs and temp files
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
 *.log
-*.tmp
+.DS_Store
+Thumbs.db
 
 # Environment
 .env
 .env.local
-.env.*
+*.env.*
+
+# Logs
+*.log
+
+# Dependencies
+node_modules/
 ```

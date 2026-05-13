@@ -59,3 +59,21 @@ QUOTEX_TIMEFRAMES = {
 # Logging
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FILE = "data/bot.log"
+
+# =============================================================================
+# DATA SOURCE CONFIGURATION
+# =============================================================================
+
+# Primary data source: "qxbroker" or "yfinance"
+# Set to "yfinance" to disable QX Broker fallback and use only Yahoo Finance
+PRIMARY_DATA_SOURCE = os.getenv("PRIMARY_DATA_SOURCE", "qxbroker")
+
+# QX Broker credentials (required if PRIMARY_DATA_SOURCE = "qxbroker")
+QX_EMAIL = os.getenv("QX_EMAIL", "")
+QX_PASSWORD = os.getenv("QX_PASSWORD", "")
+
+# QX Broker connection timeout in seconds
+QX_TIMEOUT = int(os.getenv("QX_TIMEOUT", "5"))
+
+# Simulation mode: Set SIMULATE_QX_FAILURE=True to test fallback behavior
+SIMULATE_QX_FAILURE = os.getenv("SIMULATE_QX_FAILURE", "False").lower() == "true"
