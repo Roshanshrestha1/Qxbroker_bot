@@ -2,12 +2,17 @@
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from utils.market_data import scan_top_assets, get_asset_category
+from utils.data_manager import get_data_manager, DataUnavailableError
 from utils.telegram_helpers import create_main_menu_keyboard
-from replies.messages import FOOTER_TEXT
+from replies.messages import FOOTER_TEXT, PRIMARY_FAIL_FALLBACK, DATA_SOURCE_STATUS_BACKUP, DATA_SOURCE_STATUS_PRIMARY
 from utils.logger import logger
 from handlers.settings_handler import load_user_settings
 from config import AVAILABLE_TIMEFRAMES, AVAILABLE_TRADE_TIMES
+
+
+# Track fallback notification state per user (in-memory for session)
+_user_fallback_notified = {}
+
 
 async def ai_trade_finder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -24,18 +29,44 @@ async def ai_trade_finder_callback(update: Update, context: ContextTypes.DEFAULT
     trade_time = user_settings.get('trade_time', '5m')
     chart_tf = user_settings.get('chart_timeframe', '5m')
     
-    # Send analyzing message
+    # Get data manager
+    dm = get_data_manager()
+    
+    # Check if we need to notify about fallback
+    user_id = str(update.effective_user.id)
+    should_notify_fallback = False
+    
+    if dm.has_fallback_occurred() and not _user_fallback_notified.get(user_id, False):
+        should_notify_fallback = True
+        _user_fallback_notified[user_id] = True
+    
+    # Send analyzing message with data source status
+    source_status = DATA_SOURCE_STATUS_BACKUP if dm.has_fallback_occurred() else DATA_SOURCE_STATUS_PRIMARY
+    
+    analyzing_text = (
+        "🔍 **AI is scanning ALL QX Broker assets...**\n\n"
+        f"{source_status}\n"
+        "⏳ *Please wait while I analyze Forex, Crypto, Commodities, Indices & Stocks...*\n\n"
+        f"📊 Chart Timeframe: {AVAILABLE_TIMEFRAMES.get(chart_tf, chart_tf)}\n"
+        f"⏱️ Trade Duration: {AVAILABLE_TRADE_TIMES.get(trade_time, trade_time)}"
+    )
+    
     await query.edit_message_text(
-        text="🔍 **AI is scanning ALL QX Broker assets...**\n\n"
-             "⏳ *Please wait while I analyze Forex, Crypto, Commodities, Indices & Stocks...*\n\n"
-             f"📊 Chart Timeframe: {AVAILABLE_TIMEFRAMES.get(chart_tf, chart_tf)}\n"
-             f"⏱️ Trade Duration: {AVAILABLE_TRADE_TIMES.get(trade_time, trade_time)}",
+        text=analyzing_text,
         parse_mode='Markdown'
     )
     
+    # Send fallback notification if needed
+    if should_notify_fallback:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=PRIMARY_FAIL_FALLBACK,
+            parse_mode='Markdown'
+        )
+    
     try:
         # Scan ALL assets for top 10 opportunities
-        top_assets = scan_top_assets(limit=10)
+        top_assets = dm.scan_assets(limit=10)
         
         if not top_assets:
             await query.edit_message_text(
@@ -103,6 +134,13 @@ async def ai_trade_finder_callback(update: Update, context: ContextTypes.DEFAULT
         
         logger.info(f"Found {len(top_assets)} top trading opportunities")
         
+    except DataUnavailableError as e:
+        logger.error(f"Data unavailable in AI Trade Finder: {e}")
+        await query.edit_message_text(
+            text=f"❌ Market data temporarily unavailable. Please try again later.{FOOTER_TEXT}",
+            reply_markup=create_main_menu_keyboard(),
+            parse_mode='Markdown'
+        )
     except Exception as e:
         logger.error(f"Error in AI Trade Finder: {e}")
         await query.edit_message_text(

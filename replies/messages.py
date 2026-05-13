@@ -102,3 +102,24 @@ ERROR_TIMEOUT = "⏱️ Request timed out. Try again."
 
 # Footer text
 FOOTER_TEXT = "\n\n⚠️ *Disclaimer: This is not financial advice. Trade at your own risk.*"
+
+# =============================================================================
+# FALLBACK NOTIFICATION MESSAGES
+# =============================================================================
+
+# Shown when primary source (QX Broker) fails and fallback activates
+PRIMARY_FAIL_FALLBACK = (
+    "⚠️ **Primary data source (QX Broker) is unavailable.**\n"
+    "Using backup source (Yahoo Finance / Binance).\n"
+    "_Some data may be delayed._"
+)
+
+# Shown when primary source recovers after a failure
+PRIMARY_RECOVERED = (
+    "✅ **Primary data source (QX Broker) has recovered.**\n"
+    "Using live data again."
+)
+
+# Info message about current data source status
+DATA_SOURCE_STATUS_PRIMARY = "🟢 Using **QX Broker** (Primary)"
+DATA_SOURCE_STATUS_BACKUP = "🟡 Using **Backup Source** (Yahoo/Binance)"

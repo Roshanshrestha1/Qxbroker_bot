@@ -1,1 +1,4 @@
 2026-05-13 16:50:30 - trading_bot - ERROR - BOT_TOKEN not found! Please set it in your .env file or environment variables.
+2026-05-13 17:32:48 - trading_bot - WARNING - Simulation mode: QX Broker connection forced to fail
+2026-05-13 17:32:48 - trading_bot - WARNING - QX Broker connection test failed: Simulated QX Broker failure
+2026-05-13 17:32:48 - trading_bot - WARNING - ⚠️ Primary data source (QX Broker) connection failed
