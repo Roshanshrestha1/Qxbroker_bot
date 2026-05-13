@@ -39,13 +39,13 @@ echo ""
 echo "🔌 Activating virtual environment..."
 source venv/bin/activate
 
-# Install/upgrade pip
+# Install/upgrade pip (bypass externally-managed-environment)
 echo "📦 Upgrading pip..."
-pip install --upgrade pip --quiet
+pip install --upgrade pip --quiet --break-system-packages 2>/dev/null || pip install --upgrade pip --quiet
 
 # Install requirements
 echo "📦 Installing dependencies from requirements.txt..."
-pip install -r requirements.txt --quiet
+pip install -r requirements.txt --quiet --break-system-packages 2>/dev/null || pip install -r requirements.txt --quiet
 echo "✅ Dependencies installed."
 
 # Setup .env file
