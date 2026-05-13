@@ -1,49 +1,14 @@
-```gitignore
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-.ENV
-.ENV.local
-.python-version
-.python_history
-.pytest_cache/
-.mypy_cache/
-.coverage
-coverage/
+```
+# Logs and temp files
+*.log
+*.tmp
+*.swp
 
-# Environment variables
+# Environment
 .env
 .env.local
-.env.*
-!requirements.txt
+*.env.*
 
-# Logs
+# Original rules preserved
 *.log
-
-# Temporary files
-*.tmp
-*.temp
-*~
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-Icon?
-```
-
-Wait, let me reconsider. The file changes only include source/config files (.md, .txt, .sh, .py) and no build artifacts, dependencies, or temp files were listed in the changes. According to rule #6, I should output nothing.
-
-```gitignore
-
 ```
