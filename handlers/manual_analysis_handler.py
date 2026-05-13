@@ -2,7 +2,7 @@
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from utils.market_data import analyze_asset
+from utils.market_data import get_ai_analysis, fetch_data, calculate_rsi
 from utils.telegram_helpers import (
     format_price,
     get_asset_display_name,
@@ -213,50 +213,31 @@ async def manual_trade_time_callback(update: Update, context: ContextTypes.DEFAU
     )
     
     try:
-        # Analyze the asset
-        data = await analyze_asset(symbol, category)
+        # Get AI analysis with user-selected timeframe and trade time
+        analysis_text, signal = get_ai_analysis(symbol, timeframe, trade_time)
         
-        if not data:
+        if not analysis_text:
             await query.edit_message_text(
-                text=f"{DATA_UNAVAILABLE}{FOOTER_TEXT}",
+                text=f"❌ Data unavailable for {symbol}.{FOOTER_TEXT}",
                 reply_markup=create_main_menu_keyboard(),
                 parse_mode='Markdown'
             )
             return
         
-        # Build response with timeframe and trade time
-        asset_name = get_asset_display_name(symbol)
-        price = format_price(data['price'])
-        change_24h = f"{data['change_24h']:+.2f}" if data.get('change_24h') else "N/A"
-        rsi = data.get('rsi', 'N/A')
-        sma = format_price(data.get('sma'))
-        trend = data.get('trend', 'Unknown')
+        # Add Return to Home button
+        keyboard = [
+            [InlineKeyboardButton("🏠 Return to Home", callback_data="main_menu")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
         
-        # Get recommendation based on signal
-        signal = data.get('signal', 'WAIT')
-        if signal == 'BUY':
-            recommendation = RECOMMENDATION_BUY
-        elif signal == 'SELL':
-            recommendation = RECOMMENDATION_SELL
-        else:
-            recommendation = RECOMMENDATION_WAIT
+        await query.edit_message_text(
+            text=analysis_text,
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
         
-        # Add timeframe and trade time info
-        message = f"""{MANUAL_ANALYSIS_TITLE}💹 **{asset_name}** ({symbol})
-
-⏱️ **Chart Timeframe:** {AVAILABLE_TIMEFRAMES[timeframe]}
-⏳ **Trade Time:** {AVAILABLE_TRADE_TIMES[trade_time]}
-
-💰 Price: ${price}
-📊 24h Change: {change_24h}%
-
-📉 **Technical Analysis:**
-• RSI: {rsi}
-• SMA(20): ${sma}
-• Trend: {trend}
-
-💡 **Recommendation:** {recommendation}
-{FOOTER_TEXT}"""
+        logger.info(f"Manual analysis completed for {symbol}")
+        return
         
         # Keyboard with refresh and back options
         keyboard = [
