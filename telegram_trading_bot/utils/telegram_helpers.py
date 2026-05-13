@@ -40,11 +40,13 @@ def get_asset_display_name(symbol: str) -> str:
 
 def create_main_menu_keyboard() -> InlineKeyboardMarkup:
     """Create the main menu inline keyboard."""
-    from replies.messages import AI_TRADE_FINDER_BUTTON, TRADING_INSIDE_BUTTON
+    from replies.messages import AI_TRADE_FINDER_BUTTON, TRADING_INSIDE_BUTTON, SETTINGS_BUTTON, MANUAL_ANALYSIS_BUTTON
     
     keyboard = [
         [InlineKeyboardButton(AI_TRADE_FINDER_BUTTON, callback_data="ai_trade_finder")],
         [InlineKeyboardButton(TRADING_INSIDE_BUTTON, callback_data="trading_inside")],
+        [InlineKeyboardButton(MANUAL_ANALYSIS_BUTTON, callback_data="manual_analysis")],
+        [InlineKeyboardButton(SETTINGS_BUTTON, callback_data="settings")],
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -110,3 +112,4 @@ def create_back_to_main_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton("🏠 Back to Menu", callback_data="back_to_main")],
     ]
     return InlineKeyboardMarkup(keyboard)
+

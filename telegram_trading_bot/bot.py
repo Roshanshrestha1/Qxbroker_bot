@@ -20,6 +20,23 @@ from handlers import (
     back_to_categories_callback,
     refresh_callback,
 )
+# Import new handlers
+from handlers.settings_handler import (
+    settings_callback,
+    settings_timeframe_callback,
+    settings_trade_time_callback,
+    set_timeframe_callback,
+    set_trade_time_callback,
+    settings_reset_callback,
+)
+from handlers.manual_analysis_handler import (
+    manual_analysis_callback,
+    manual_category_callback,
+    manual_asset_callback,
+    manual_timeframe_callback,
+    manual_trade_time_callback,
+    manual_back_assets_callback,
+)
 
 
 def create_application() -> Application:
@@ -39,6 +56,22 @@ def create_application() -> Application:
     # Main menu buttons
     application.add_handler(CallbackQueryHandler(ai_trade_finder_callback, pattern="^ai_trade_finder$"))
     application.add_handler(CallbackQueryHandler(trading_inside_callback, pattern="^trading_inside$"))
+    application.add_handler(CallbackQueryHandler(manual_analysis_callback, pattern="^manual_analysis$"))
+    application.add_handler(CallbackQueryHandler(settings_callback, pattern="^settings$"))
+    
+    # Settings handlers
+    application.add_handler(CallbackQueryHandler(settings_timeframe_callback, pattern="^settings_timeframe$"))
+    application.add_handler(CallbackQueryHandler(settings_trade_time_callback, pattern="^settings_trade_time$"))
+    application.add_handler(CallbackQueryHandler(set_timeframe_callback, pattern="^set_timeframe_"))
+    application.add_handler(CallbackQueryHandler(set_trade_time_callback, pattern="^set_trade_time_"))
+    application.add_handler(CallbackQueryHandler(settings_reset_callback, pattern="^settings_reset$"))
+    
+    # Manual Analysis handlers
+    application.add_handler(CallbackQueryHandler(manual_category_callback, pattern="^manual_category_"))
+    application.add_handler(CallbackQueryHandler(manual_asset_callback, pattern="^manual_asset_"))
+    application.add_handler(CallbackQueryHandler(manual_timeframe_callback, pattern="^manual_tf_"))
+    application.add_handler(CallbackQueryHandler(manual_trade_time_callback, pattern="^manual_tt_"))
+    application.add_handler(CallbackQueryHandler(manual_back_assets_callback, pattern="^manual_back_assets_"))
     
     # Category selection
     application.add_handler(CallbackQueryHandler(category_callback, pattern="^category_"))

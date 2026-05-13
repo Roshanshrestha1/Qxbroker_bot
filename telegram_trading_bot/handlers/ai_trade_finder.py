@@ -16,9 +16,13 @@ from replies.messages import (
     AI_CONFIDENCE_MEDIUM,
     AI_CONFIDENCE_LOW,
     FOOTER_TEXT,
+    AI_ANALYSIS_WITH_TIMEFRAME,
+    AI_BEST_TRADE_WITH_TIMEFRAME,
 )
 from utils.logger import logger
 from assets.asset_lists import ALL_ASSETS
+from handlers.settings_handler import load_user_settings
+from config import AVAILABLE_TIMEFRAMES, AVAILABLE_TRADE_TIMES
 
 
 async def ai_trade_finder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -33,9 +37,17 @@ async def ai_trade_finder_callback(update: Update, context: ContextTypes.DEFAULT
     query = update.callback_query
     await query.answer()
     
-    # Send analyzing message
+    # Load user settings for default timeframe and trade time
+    user_settings = load_user_settings(update.effective_user.id)
+    timeframe = user_settings.get('chart_timeframe', '1h')
+    trade_time = user_settings.get('trade_time', '5m')
+    
+    # Send analyzing message with timeframe
+    analyzing_msg = AI_ANALYSIS_WITH_TIMEFRAME.format(
+        timeframe=AVAILABLE_TIMEFRAMES.get(timeframe, timeframe)
+    )
     await query.edit_message_text(
-        text=AI_ANALYZING,
+        text=analyzing_msg,
     )
     
     try:
@@ -72,18 +84,20 @@ async def ai_trade_finder_callback(update: Update, context: ContextTypes.DEFAULT
         }
         confidence_text = confidence_map.get(confidence, "")
         
-        message = f"""{AI_BEST_TRADE_TITLE}
-💹 **{asset_name}** ({symbol})
-
-{signal_emoji} **Signal: {signal}**
-📊 **Confidence:** {confidence_text}
-
-💰 **Current Price:** ${price}
-📉 **RSI:** {rsi}
-📈 **SMA(20):** ${sma}
-
-📝 **Reason:** {reason}
-{FOOTER_TEXT}"""
+        message = AI_BEST_TRADE_WITH_TIMEFRAME.format(
+            asset_name=asset_name,
+            symbol=symbol,
+            signal=signal,
+            timeframe=AVAILABLE_TIMEFRAMES.get(timeframe, timeframe),
+            trade_time=AVAILABLE_TRADE_TIMES.get(trade_time, trade_time),
+            confidence_text=confidence_text,
+            price=price,
+            rsi=rsi,
+            sma=sma,
+            reason=reason,
+            signal_emoji=signal_emoji,
+            footer=FOOTER_TEXT
+        )
         
         # Send result with main menu keyboard
         await query.edit_message_text(
